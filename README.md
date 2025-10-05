@@ -1,5 +1,7 @@
 # 🛡️ JWT Validator CLI
 
+![JWT CLI Screenshot](assets/jwt-validate.png)
+
 A simple **C# console application** that allows you to **generate and
 validate JWT tokens** using configuration values from an
 `appsettings.json` file.\
