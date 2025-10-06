@@ -1,6 +1,6 @@
 using System.CommandLine;
 
-namespace JwtValidator
+namespace JwtValidator.Core.Models
 {
     public static class CommandLineOptions
     {
@@ -62,7 +62,7 @@ namespace JwtValidator
 
         static CommandLineOptions()
         {
-            ConfigFileOption.SetDefaultValue("appsettings.json");
+            ConfigFileOption.SetDefaultValue("config/appsettings.json");
         }
     }
 
@@ -72,7 +72,7 @@ namespace JwtValidator
         public string? Claims { get; set; }
         public string? OutputFile { get; set; }
         public bool Verbose { get; set; }
-        public string ConfigFile { get; set; } = "appsettings.json";
+        public string ConfigFile { get; set; } = "config/appsettings.json";
     }
 
     public class ValidateTokenOptions
@@ -80,6 +80,66 @@ namespace JwtValidator
         public string Token { get; set; } = "";
         public bool PrettyPrint { get; set; }
         public bool Verbose { get; set; }
-        public string ConfigFile { get; set; } = "appsettings.json";
+        public string ConfigFile { get; set; } = "config/appsettings.json";
+    }
+
+    // Export/Import Options
+    public static class ExportImportCommandLineOptions
+    {
+        public static readonly Option<string> ExportFileOption = new(
+            aliases: ["--export-file", "-e"],
+            description: "File path for export"
+        )
+        {
+            IsRequired = false,
+        };
+
+        public static readonly Option<string> ImportFileOption = new(
+            aliases: ["--import-file", "-i"],
+            description: "File path for import"
+        )
+        {
+            IsRequired = false,
+        };
+
+        public static readonly Option<bool> IncludeTokensOption = new(
+            aliases: ["--include-tokens"],
+            description: "Include generated tokens in export"
+        )
+        {
+            IsRequired = false,
+        };
+
+        public static readonly Option<bool> IncludeTemplatesOption = new(
+            aliases: ["--include-templates"],
+            description: "Include claims templates in export"
+        )
+        {
+            IsRequired = false,
+        };
+
+        public static readonly Option<bool> IncludeSettingsOption = new(
+            aliases: ["--include-settings"],
+            description: "Include JWT settings in export"
+        )
+        {
+            IsRequired = false,
+        };
+
+        public static readonly Option<string> TemplateNameOption = new(
+            aliases: ["--template-name", "-n"],
+            description: "Name for the claims template"
+        )
+        {
+            IsRequired = false,
+        };
+
+        public static readonly Option<string> TemplateDescriptionOption = new(
+            aliases: ["--template-description", "-d"],
+            description: "Description for the claims template"
+        )
+        {
+            IsRequired = false,
+        };
     }
 }

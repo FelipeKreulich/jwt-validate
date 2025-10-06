@@ -20,6 +20,8 @@ understand how claims and validation work.
 -   **Configurable settings**: secret, issuer, audience, expiration time, and algorithm
 -   **Visual feedback** with console animations and colored output
 -   **File output**: Save generated tokens to files
+-   **Export/Import system**: Export and import tokens, templates, and settings
+-   **Claims templates**: Create reusable claim templates for common scenarios
 -   **Verbose mode**: Detailed logging and information display
 -   **Fully self-contained CLI app**
 
@@ -146,6 +148,31 @@ dotnet run -- validate --token "your-jwt-token-here" --pretty
 dotnet run -- validate --token "your-jwt-token-here" --verbose --pretty
 ```
 
+#### Export/Import Commands
+
+``` bash
+# Export tokens, templates, and settings
+dotnet run -- export --include-tokens --include-settings --verbose
+
+# Export only tokens
+dotnet run -- export --include-tokens --export-file "my-tokens.json"
+
+# Import from file
+dotnet run -- import --import-file "exports/jwt_export_20251007_000029.json"
+
+# Create claims template
+dotnet run -- create-template --template-name "admin-user" --template-description "Admin user template"
+
+# List generated tokens
+dotnet run -- list --type tokens
+
+# List claims templates
+dotnet run -- list --type templates
+
+# List export files
+dotnet run -- list --type exports
+```
+
 #### Command Options
 
 | Option | Short | Description |
@@ -157,6 +184,13 @@ dotnet run -- validate --token "your-jwt-token-here" --verbose --pretty
 | `--verbose` | `-v` | Enable verbose output |
 | `--pretty` | `-p` | Pretty print validation results |
 | `--config` | `-f` | Path to configuration file (default: appsettings.json) |
+| `--export-file` | `-e` | File path for export |
+| `--import-file` | `-i` | File path for import |
+| `--include-tokens` | | Include generated tokens in export |
+| `--include-templates` | | Include claims templates in export |
+| `--include-settings` | | Include JWT settings in export |
+| `--template-name` | `-n` | Name for the claims template |
+| `--template-description` | `-d` | Description for the claims template |
 
 #### Help
 
@@ -167,6 +201,75 @@ dotnet run -- --help
 # Show command-specific help
 dotnet run -- generate --help
 dotnet run -- validate --help
+dotnet run -- export --help
+dotnet run -- import --help
+dotnet run -- create-template --help
+dotnet run -- list --help
+```
+
+------------------------------------------------------------------------
+
+## 📤 Export/Import System
+
+The JWT Validator includes a comprehensive export/import system for managing tokens, templates, and settings.
+
+### Export Features
+
+- **Token Export**: Save generated tokens with metadata (subject, claims, generation time)
+- **Template Export**: Export reusable claims templates
+- **Settings Export**: Export JWT configuration settings
+- **Selective Export**: Choose what to include in exports
+- **JSON Format**: Structured JSON format with versioning
+
+### Import Features
+
+- **Data Recovery**: Restore previously exported data
+- **Template Import**: Import claims templates for reuse
+- **Validation**: Validate import files before processing
+- **Error Handling**: Detailed error reporting for failed imports
+
+### Claims Templates
+
+Create reusable templates for common claim patterns:
+
+``` bash
+# Create a template interactively
+dotnet run -- create-template
+
+# Create with parameters
+dotnet run -- create-template --template-name "admin" --template-description "Admin user template"
+```
+
+### Export File Structure
+
+``` json
+{
+  "version": "1.0",
+  "exportDate": "2025-10-06T23:00:29.8981111Z",
+  "jwtSettings": {
+    "Secret": "...",
+    "Issuer": "Api",
+    "Audience": "Api",
+    "ExpiryMinutes": 60,
+    "Algorithm": "HS256"
+  },
+  "tokens": [
+    {
+      "subject": "user@example.com",
+      "claims": {"role": "user"},
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "generatedAt": "2025-10-06T23:00:29.8981111Z"
+    }
+  ],
+  "claimsTemplates": [
+    {
+      "name": "admin-user",
+      "description": "Admin user template",
+      "claims": {"role": "admin", "permissions": "read,write,delete"},
+      "createdAt": "2025-10-06T23:00:29.8981111Z"
+    }
+  ]
+}
 ```
 
 ------------------------------------------------------------------------
@@ -216,7 +319,10 @@ For RS256, you need to provide RSA key files:
     ├── Program.cs              # Main application with CLI and interactive modes
     ├── JwtService.cs           # JWT generation and validation logic
     ├── CommandLineModels.cs    # Command-line argument definitions
+    ├── ExportImportModels.cs   # Export/import data models
+    ├── ExportImportService.cs  # Export/import functionality
     ├── appsettings.json        # Configuration file
+    ├── exports/                # Directory for export files
     └── README.md
 
 ------------------------------------------------------------------------
@@ -299,6 +405,47 @@ dotnet run -- generate --subject "admin@example.com" --claims '{"role":"admin","
 dotnet run -- generate --subject "user1@example.com" --output "user1-token.txt"
 dotnet run -- generate --subject "user2@example.com" --output "user2-token.txt"
 dotnet run -- generate --subject "admin@example.com" --claims '{"role":"admin"}' --output "admin-token.txt"
+```
+
+### Example 5: Export/Import Workflow
+
+``` bash
+# Generate some tokens
+dotnet run -- generate --subject "user@example.com" --claims '{"role":"user","department":"IT"}'
+dotnet run -- generate --subject "admin@example.com" --claims '{"role":"admin","permissions":"read,write,delete"}'
+
+# Create a claims template
+dotnet run -- create-template --template-name "developer" --template-description "Developer template"
+
+# Export everything
+dotnet run -- export --include-tokens --include-templates --include-settings --verbose
+
+# List what we have
+dotnet run -- list --type tokens
+dotnet run -- list --type templates
+dotnet run -- list --type exports
+
+# Import from a specific file
+dotnet run -- import --import-file "exports/jwt_export_20251007_000029.json" --verbose
+```
+
+### Example 6: Claims Template Usage
+
+``` bash
+# Create a template for admin users
+dotnet run -- create-template --template-name "admin-user" --template-description "Standard admin user"
+
+# Enter claims interactively:
+# > role=admin
+# > permissions=read,write,delete
+# > department=IT
+# > [empty line to finish]
+
+# List templates to verify
+dotnet run -- list --type templates
+
+# Export templates for backup
+dotnet run -- export --include-templates --export-file "admin-templates.json"
 ```
 
 ------------------------------------------------------------------------
