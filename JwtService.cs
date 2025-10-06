@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.IO;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
 public class JwtSettings
@@ -12,23 +13,66 @@ public class JwtSettings
     public string Issuer { get; set; } = "";
     public string Audience { get; set; } = "";
     public int ExpiryMinutes { get; set; }
+    public string Algorithm { get; set; } = "HS256"; // default
+    public string? PrivateKeyPath { get; set; }
+    public string? PublicKeyPath { get; set; }
 }
 
 public class JwtService
 {
     private readonly JwtSettings _settings;
-    private readonly byte[] _secretBytes;
     private readonly SigningCredentials _signingCredentials;
     private readonly TokenValidationParameters _validationParameters;
 
     public JwtService(JwtSettings settings)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-        _secretBytes = Encoding.UTF8.GetBytes(_settings.Secret);
 
-        var securityKey = new SymmetricSecurityKey(_secretBytes);
-        _signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+        // Escolhe a chave e algoritmo com base nas configurações
+        SecurityKey signingKey;
 
+        switch (_settings.Algorithm.ToUpper())
+        {
+            case "RS256":
+                if (
+                    string.IsNullOrEmpty(_settings.PrivateKeyPath)
+                    || string.IsNullOrEmpty(_settings.PublicKeyPath)
+                )
+                    throw new Exception("RSA key paths must be specified for RS256 algorithm.");
+
+                // Importa a chave privada (para assinar)
+                var privateKeyPem = File.ReadAllText(_settings.PrivateKeyPath);
+                var rsaPrivate = RSA.Create();
+                rsaPrivate.ImportFromPem(privateKeyPem);
+
+                signingKey = new RsaSecurityKey(rsaPrivate);
+                _signingCredentials = new SigningCredentials(
+                    signingKey,
+                    SecurityAlgorithms.RsaSha256
+                );
+                break;
+
+            case "HS512":
+                var secret512 = Encoding.UTF8.GetBytes(_settings.Secret);
+                signingKey = new SymmetricSecurityKey(secret512);
+                _signingCredentials = new SigningCredentials(
+                    signingKey,
+                    SecurityAlgorithms.HmacSha512
+                );
+                break;
+
+            case "HS256":
+            default:
+                var secret = Encoding.UTF8.GetBytes(_settings.Secret);
+                signingKey = new SymmetricSecurityKey(secret);
+                _signingCredentials = new SigningCredentials(
+                    signingKey,
+                    SecurityAlgorithms.HmacSha256
+                );
+                break;
+        }
+
+        // Configuração de validação
         _validationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -38,11 +82,31 @@ public class JwtService
             ValidAudience = _settings.Audience,
 
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = securityKey,
+            IssuerSigningKey = GetValidationKey(_settings),
 
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromSeconds(30),
         };
+    }
+
+    // Retorna a chave correta para validação dependendo do algoritmo
+    private SecurityKey GetValidationKey(JwtSettings settings)
+    {
+        switch (settings.Algorithm.ToUpper())
+        {
+            case "RS256":
+                var publicKeyPem = File.ReadAllText(settings.PublicKeyPath!);
+                var rsaPublic = RSA.Create();
+                rsaPublic.ImportFromPem(publicKeyPem);
+                return new RsaSecurityKey(rsaPublic);
+
+            case "HS512":
+                return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.Secret));
+
+            case "HS256":
+            default:
+                return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.Secret));
+        }
     }
 
     public string GenerateToken(string subject, IDictionary<string, string>? extraClaims = null)
@@ -91,12 +155,12 @@ public class JwtService
             if (
                 !(validatedToken is JwtSecurityToken jwt)
                 || !jwt.Header.Alg.Equals(
-                    SecurityAlgorithms.HmacSha256,
+                    _signingCredentials.Algorithm,
                     StringComparison.InvariantCultureIgnoreCase
                 )
             )
             {
-                return (false, null, "Algoritmo de assinatura inválido.");
+                return (false, null, "Invalid signing algorithm.");
             }
 
             return (true, principal, null);
