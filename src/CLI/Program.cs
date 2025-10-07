@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using JwtValidator.Core.Models;
 using JwtValidator.Core.Services;
 using Microsoft.Extensions.Configuration;
+using Spectre.Console;
 
 class Program
 {
@@ -42,10 +43,7 @@ class Program
             {
                 MostrarMenu();
 
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.Write("\n > Choose an option: ");
-                Console.ResetColor();
-                var op = Console.ReadLine();
+                var op = AnsiConsole.Ask<string>("\n[cyan]Choose an option:[/]");
 
                 switch (op)
                 {
@@ -62,23 +60,17 @@ class Program
                         GerenciarTemplates();
                         break;
                     case "0":
-                        Console.ForegroundColor = ConsoleColor.Yellow;
-                        Console.WriteLine("\nExiting...");
-                        Console.ResetColor();
+                        AnsiConsole.MarkupLine("\n[yellow]Exiting...[/]");
                         return 0;
                     default:
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("Invalid option.");
-                        Console.ResetColor();
+                        AnsiConsole.MarkupLine("[red]Invalid option.[/]");
                         break;
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Error: {ex.Message}");
-            Console.ResetColor();
+            AnsiConsole.MarkupLine($"[red]Error: {ex.Message}[/]");
             return 1;
         }
     }
@@ -767,41 +759,45 @@ class Program
 
     static void MostrarCabecalho()
     {
-        Console.Clear();
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine(
-            @"
-     ____.          __    ____   ____      .__  .__    .___       __           ___.              _____          __                         
-    |    |_  _  ___/  |_  \   \ /   /____  |  | |__| __| _/____ _/  |_  ____   \_ |__ ___.__.   /  _  \   _____/  |_____________  ________ 
-    |    \ \/ \/ /\   __\  \   Y   /\__  \ |  | |  |/ __ |\__  \\   __\/ __ \   | __ <   |  |  /  /_\  \ /    \   __\_  __ \__  \ \___   / 
-/\__|    |\     /  |  |     \     /  / __ \|  |_|  / /_/ | / __ \|  | \  ___/   | \_\ \___  | /    |    \   |  \  |  |  | \// __ \_/    /  
-\________| \/\_/   |__|      \___/  (____  /____/__\____ |(____  /__|  \___  >  |___  / ____| \____|__  /___|  /__|  |__|  (____  /_____ \ 
-                                         \/             \/     \/          \/       \/\/              \/     \/                 \/      \/ 
-        "
-        );
-        Console.ResetColor();
-
-        MostrarTitulo("JWT Validator CLI");
+        AnsiConsole.Clear();
+        
+        var figlet = new FigletText("JWT Validator")
+            .Centered()
+            .Color(Color.Green);
+        AnsiConsole.Write(figlet);
+        
+        var rule = new Rule("[bold blue]JWT Token Generator & Validator CLI[/]")
+            .RuleStyle("grey");
+        AnsiConsole.Write(rule);
+        
+        AnsiConsole.WriteLine();
     }
 
     static void MostrarTitulo(string titulo)
     {
-        Console.ForegroundColor = ConsoleColor.Blue;
-        Console.WriteLine(new string('-', titulo.Length + 4));
-        Console.WriteLine($"| {titulo} |");
-        Console.WriteLine(new string('-', titulo.Length + 4));
-        Console.ResetColor();
+        var panel = new Panel($"[bold cyan]{titulo}[/]")
+            .BorderColor(Color.Blue)
+            .RoundedBorder();
+        AnsiConsole.Write(panel);
     }
 
     static void MostrarMenu()
     {
-        Console.WriteLine("\n============= MENU =============");
-        Console.WriteLine(" [1] Generate new JWT token");
-        Console.WriteLine(" [2] Validate existing token");
-        Console.WriteLine(" [3] Generate token from template");
-        Console.WriteLine(" [4] Manage claims templates");
-        Console.WriteLine(" [0] Exit");
-        Console.WriteLine("================================");
+        var table = new Table()
+            .BorderColor(Color.Grey)
+            .Border(TableBorder.Rounded)
+            .Title("[bold yellow]MAIN MENU[/]");
+        
+        table.AddColumn("[bold blue]Option[/]");
+        table.AddColumn("[bold green]Description[/]");
+        
+        table.AddRow("[cyan]1[/]", "Generate new JWT token");
+        table.AddRow("[cyan]2[/]", "Validate existing token");
+        table.AddRow("[cyan]3[/]", "Generate token from template");
+        table.AddRow("[cyan]4[/]", "Manage claims templates");
+        table.AddRow("[red]0[/]", "Exit");
+        
+        AnsiConsole.Write(table);
     }
 
     static void GerarToken(JwtService service)

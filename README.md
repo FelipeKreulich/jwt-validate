@@ -15,6 +15,7 @@ understand how claims and validation work.
 -   **Interactive Mode**: User-friendly menu-driven interface for JWT operations
 -   **Command Line Mode**: Generate and validate tokens via command-line flags
 -   **Dynamic Claims**: Add custom claims interactively with real-time validation
+-   **Colorful Interface**: Modern UI with Spectre.Console styling and animations
 -   **Multiple Signature Algorithms**: Support for HS256, HS512, and RS256 algorithms
 -   **Generate JWT tokens** with custom claims and subjects
 -   **Validate and inspect** existing JWT tokens with detailed claim information
@@ -367,6 +368,7 @@ For RS256, you need to provide RSA key files:
 -   `Microsoft.IdentityModel.Tokens` - JWT token handling
 -   `System.IdentityModel.Tokens.Jwt` - JWT token creation and validation
 -   `System.CommandLine` - Command-line argument parsing
+-   `Spectre.Console` - Rich console UI with colors and styling
 
 Install them using NuGet if needed:
 
@@ -378,7 +380,39 @@ dotnet add package Microsoft.Extensions.Configuration.EnvironmentVariables
 dotnet add package Microsoft.IdentityModel.Tokens
 dotnet add package System.IdentityModel.Tokens.Jwt
 dotnet add package System.CommandLine
+dotnet add package Spectre.Console
 ```
+
+------------------------------------------------------------------------
+
+## 🎨 Modern Interface with Spectre.Console
+
+The JWT Validator features a **modern, colorful interface** powered by Spectre.Console, providing a rich visual experience while maintaining full functionality.
+
+### 🌟 Visual Features
+
+- **ASCII Art Logo**: Stylized FigletText header with centered layout
+- **Styled Tables**: Organized menus and data display with rounded borders
+- **Interactive Prompts**: Colorful input prompts with real-time feedback
+- **Status Animations**: Spinning indicators during token operations
+- **Colored Panels**: Information displayed in bordered, colored panels
+- **Rich Markup**: Text styling with colors, bold, and emphasis
+
+### 🎯 Enhanced User Experience
+
+- **Professional Look**: Modern CLI interface that's easy on the eyes
+- **Clear Navigation**: Visual hierarchy with colors and borders
+- **Progress Feedback**: Animated spinners show operation status
+- **Organized Data**: Tables and panels structure information clearly
+- **Intuitive Prompts**: Color-coded inputs guide user interaction
+
+### 🎨 Color Scheme
+
+- **Green**: Success messages, confirmations, and logo
+- **Red**: Errors and critical warnings
+- **Blue/Cyan**: Titles, headers, and prompts
+- **Yellow**: User inputs and highlights
+- **Grey**: Borders and separators
 
 ------------------------------------------------------------------------
 
@@ -541,13 +575,41 @@ dotnet run -- list --type templates
 dotnet run -- export --include-templates --export-file "admin-templates.json"
 ```
 
+### Example 8: Modern Interface Experience
+
+When you run the interactive mode, you'll see a modern interface:
+
+```
+     ██╗██╗    ██╗████████╗    ██╗   ██╗ █████╗ ██╗     ██╗██████╗  █████╗ ████████╗ ██████╗ ██████╗ 
+     ██║██║    ██║╚══██╔══╝    ██║   ██║██╔══██╗██║     ██║██╔══██╗██╔══██╗╚══██╔══╝██╔═══██╗██╔══██╗
+     ██║██║ █╗ ██║   ██║       ██║   ██║███████║██║     ██║██║  ██║███████║   ██║   ██║   ██║██████╔╝
+██   ██║██║███╗██║   ██║       ╚██╗ ██╔╝██╔══██║██║     ██║██║  ██║██╔══██║   ██║   ██║   ██║██╔══██╗
+╚█████╔╝╚███╔███╔╝   ██║        ╚████╔╝ ██║  ██║███████╗██║██████╔╝██║  ██║   ██║   ╚██████╔╝██║  ██║
+ ╚════╝  ╚══╝╚══╝    ╚═╝         ╚═══╝  ╚═╝  ╚═╝╚══════╝╚═╝╚═════╝ ╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝
+
+─────────────────────────── JWT Token Generator & Validator CLI ───────────────────────────
+
+┌─────────────────────────────────────────┐
+│                MAIN MENU                │
+├─────────┬───────────────────────────────┤
+│ Option  │ Description                   │
+├─────────┼───────────────────────────────┤
+│ 1       │ Generate new JWT token        │
+│ 2       │ Validate existing token       │
+│ 3       │ Generate token from template  │
+│ 4       │ Manage claims templates       │
+│ 0       │ Exit                          │
+└─────────┴───────────────────────────────┘
+
+Choose an option: _
+```
+
 ------------------------------------------------------------------------
 
 ## 🧠 Author
 
 Created by **Felipe** 💻\
-A simple yet educational project for learning and testing JWT
-authentication logic in C#.
+A modern, feature-rich CLI tool for JWT token generation and validation with a beautiful interface powered by Spectre.Console.
 
 ------------------------------------------------------------------------
 
