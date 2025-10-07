@@ -760,24 +760,19 @@ class Program
     static void MostrarCabecalho()
     {
         AnsiConsole.Clear();
-        
-        var figlet = new FigletText("JWT Validator")
-            .Centered()
-            .Color(Color.Green);
+
+        var figlet = new FigletText("JWT Validator").Centered().Color(Color.Green);
         AnsiConsole.Write(figlet);
-        
-        var rule = new Rule("[bold blue]JWT Token Generator & Validator CLI[/]")
-            .RuleStyle("grey");
+
+        var rule = new Rule("[bold blue]JWT Token Generator & Validator CLI[/]").RuleStyle("grey");
         AnsiConsole.Write(rule);
-        
+
         AnsiConsole.WriteLine();
     }
 
     static void MostrarTitulo(string titulo)
     {
-        var panel = new Panel($"[bold cyan]{titulo}[/]")
-            .BorderColor(Color.Blue)
-            .RoundedBorder();
+        var panel = new Panel($"[bold cyan]{titulo}[/]").BorderColor(Color.Blue).RoundedBorder();
         AnsiConsole.Write(panel);
     }
 
@@ -787,16 +782,16 @@ class Program
             .BorderColor(Color.Grey)
             .Border(TableBorder.Rounded)
             .Title("[bold yellow]MAIN MENU[/]");
-        
+
         table.AddColumn("[bold blue]Option[/]");
         table.AddColumn("[bold green]Description[/]");
-        
+
         table.AddRow("[cyan]1[/]", "Generate new JWT token");
         table.AddRow("[cyan]2[/]", "Validate existing token");
         table.AddRow("[cyan]3[/]", "Generate token from template");
         table.AddRow("[cyan]4[/]", "Manage claims templates");
         table.AddRow("[red]0[/]", "Exit");
-        
+
         AnsiConsole.Write(table);
     }
 
