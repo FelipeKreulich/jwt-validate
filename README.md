@@ -14,6 +14,7 @@ understand how claims and validation work.
 
 -   **Interactive Mode**: User-friendly menu-driven interface for JWT operations
 -   **Command Line Mode**: Generate and validate tokens via command-line flags
+-   **Dynamic Claims**: Add custom claims interactively with real-time validation
 -   **Multiple Signature Algorithms**: Support for HS256, HS512, and RS256 algorithms
 -   **Generate JWT tokens** with custom claims and subjects
 -   **Validate and inspect** existing JWT tokens with detailed claim information
@@ -22,6 +23,7 @@ understand how claims and validation work.
 -   **File output**: Save generated tokens to files
 -   **Export/Import system**: Export and import tokens, templates, and settings
 -   **Claims templates**: Create reusable claim templates for common scenarios
+-   **Template-based generation**: Generate tokens from predefined templates
 -   **Verbose mode**: Detailed logging and information display
 -   **Fully self-contained CLI app**
 
@@ -102,18 +104,47 @@ dotnet run
     ============= MENU =============
      [1] Generate new JWT token
      [2] Validate existing token
+     [3] Generate token from template
+     [4] Manage claims templates
      [0] Exit
     ================================
 
-#### 🔑 Generate a Token
+#### 🔑 Generate a Token with Dynamic Claims
 
-Choose option `1` and enter a subject (e.g., an email or user ID).\
-The program will generate a new JWT token and display it in the console.
+Choose option `1` and enter a subject (e.g., an email or user ID). You can then add custom claims dynamically using the interactive interface:
+
+```
+📝 Add custom claims (optional):
+Enter claims in key=value format, one per line.
+Press Enter on empty line to finish.
+Examples: role=admin, department=IT, permissions=read,write
+
+> role=admin
+  ✅ Added: role = admin
+> department=IT
+  ✅ Added: department = IT
+> permissions=read,write,delete
+  ✅ Added: permissions = read,write,delete
+> [empty line to finish]
+
+📋 Claims to be included (3):
+  • role: admin
+  • department: IT
+  • permissions: read,write,delete
+```
 
 #### 🧾 Validate a Token
 
 Choose option `2` and paste an existing token.\
 The app will validate it and display whether it's valid, along with its claims.
+
+#### 📝 Generate Token from Template
+
+Choose option `3` to generate tokens using predefined templates. You can select from existing templates and optionally add extra claims.
+
+#### ⚙️ Manage Claims Templates
+
+Choose option `4` to create, list, and view claims templates for reusable claim patterns.
 
 ### 💻 Command Line Mode
 
@@ -351,6 +382,49 @@ dotnet add package System.CommandLine
 
 ------------------------------------------------------------------------
 
+## 🔧 Dynamic Claims Feature
+
+The JWT Validator now supports **dynamic claims addition** in interactive mode, allowing you to add custom claims on-the-fly without modifying code or configuration files.
+
+### 🎆 Key Features
+
+- **Real-time Validation**: Input validation with immediate feedback
+- **Visual Feedback**: Color-coded responses with emojis for better UX
+- **Flexible Input**: Simple `key=value` format for claim entry
+- **Template Integration**: Use predefined templates or create new ones
+- **File Export**: Option to save generated tokens to files
+- **History Tracking**: All generated tokens are automatically saved
+
+### 📝 Interactive Workflow
+
+1. **Start Interactive Mode**: `dotnet run`
+2. **Select Option 1**: Generate new JWT token
+3. **Enter Subject**: Provide user identifier (email, ID, etc.)
+4. **Add Claims Dynamically**:
+   - Enter claims in `key=value` format
+   - Get real-time validation feedback
+   - See summary before token generation
+5. **Generate Token**: Token created with all custom claims
+6. **Save Option**: Choose to save token to file
+
+### 📊 Template Management
+
+Create reusable claim templates for common scenarios:
+
+- **Admin Users**: `role=admin`, `permissions=read,write,delete`
+- **Regular Users**: `role=user`, `department=IT`
+- **API Keys**: `scope=api`, `rate_limit=1000`
+- **Custom Scenarios**: Any combination of claims
+
+### 🔍 Validation Features
+
+- **Format Validation**: Ensures `key=value` format
+- **Empty Value Check**: Prevents empty keys or values
+- **Duplicate Handling**: Overwrites duplicate keys
+- **Visual Confirmation**: Shows added claims with checkmarks
+
+------------------------------------------------------------------------
+
 ## 📝 Examples
 
 ### Example 1: Generate Token with HS256
@@ -429,7 +503,26 @@ dotnet run -- list --type exports
 dotnet run -- import --import-file "exports/jwt_export_20251007_000029.json" --verbose
 ```
 
-### Example 6: Claims Template Usage
+### Example 6: Interactive Dynamic Claims
+
+``` bash
+# Run interactive mode
+dotnet run
+
+# Select option 1 for token generation
+# Enter subject: admin@company.com
+# Add claims interactively:
+# > role=admin
+# > department=IT
+# > permissions=read,write,delete
+# > level=5
+# > [empty line to finish]
+
+# Token will be generated with all custom claims
+# Option to save to file will be presented
+```
+
+### Example 7: Claims Template Usage
 
 ``` bash
 # Create a template for admin users

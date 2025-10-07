@@ -15,16 +15,13 @@ class Program
 
     static async Task<int> Main(string[] args)
     {
-        // Inicializa o serviço de export/import
         _exportImportService = new ExportImportService();
 
-        // Se não há argumentos, executa o modo interativo
         if (args.Length == 0)
         {
             return await RunInteractiveMode();
         }
 
-        // Se há argumentos, executa o modo de linha de comando
         return await RunCommandLineMode(args);
     }
 
@@ -32,7 +29,6 @@ class Program
     {
         try
         {
-            // Carrega configurações
             var config = LoadConfiguration("config/appsettings.json");
             var jwtSettings =
                 config.GetSection("JwtSettings").Get<JwtSettings>() ?? throw new Exception(
@@ -58,6 +54,12 @@ class Program
                         break;
                     case "2":
                         ValidarToken(service);
+                        break;
+                    case "3":
+                        GerarTokenComTemplate(service);
+                        break;
+                    case "4":
+                        GerenciarTemplates();
                         break;
                     case "0":
                         Console.ForegroundColor = ConsoleColor.Yellow;
@@ -91,7 +93,6 @@ class Program
     {
         var rootCommand = new RootCommand("JWT Validator CLI - Generate and validate JWT tokens");
 
-        // Comando para gerar token
         var generateCommand = new Command("generate", "Generate a new JWT token")
         {
             CommandLineOptions.SubjectOption,
@@ -119,7 +120,6 @@ class Program
             CommandLineOptions.ConfigFileOption
         );
 
-        // Comando para validar token
         var validateCommand = new Command("validate", "Validate a JWT token")
         {
             CommandLineOptions.TokenOption,
@@ -139,7 +139,6 @@ class Program
             CommandLineOptions.ConfigFileOption
         );
 
-        // Comando para exportar dados
         var exportCommand = new Command("export", "Export tokens, templates, and settings")
         {
             ExportImportCommandLineOptions.ExportFileOption,
@@ -177,7 +176,6 @@ class Program
             CommandLineOptions.ConfigFileOption
         );
 
-        // Comando para importar dados
         var importCommand = new Command("import", "Import tokens, templates, and settings")
         {
             ExportImportCommandLineOptions.ImportFileOption,
@@ -193,7 +191,6 @@ class Program
             CommandLineOptions.VerboseOption
         );
 
-        // Comando para criar template
         var createTemplateCommand = new Command("create-template", "Create a claims template")
         {
             ExportImportCommandLineOptions.TemplateNameOption,
@@ -223,7 +220,6 @@ class Program
             CommandLineOptions.VerboseOption
         );
 
-        // Comando para listar dados
         var listCommand = new Command("list", "List tokens, templates, or exports")
         {
             new Option<string>("--type", "Type to list: tokens, templates, exports").FromAmong(
@@ -293,7 +289,6 @@ class Program
                 );
             var service = new JwtService(jwtSettings);
 
-            // Parse claims se fornecidas
             Dictionary<string, string>? extraClaims = null;
             if (!string.IsNullOrEmpty(claims))
             {
@@ -317,14 +312,12 @@ class Program
 
             var token = service.GenerateToken(subject, extraClaims);
 
-            // Salvar no serviço de export/import
             _exportImportService?.AddGeneratedToken(
                 subject,
                 extraClaims ?? new Dictionary<string, string>(),
                 token
             );
 
-            // Salvar em arquivo se especificado
             if (!string.IsNullOrEmpty(outputFile))
             {
                 await File.WriteAllTextAsync(outputFile, token);
@@ -444,7 +437,6 @@ class Program
                 return;
             }
 
-            // Determinar arquivo de export
             var filePath = exportFile ?? _exportImportService.GenerateDefaultExportPath();
 
             JwtSettings? jwtSettings = null;
@@ -806,6 +798,8 @@ class Program
         Console.WriteLine("\n============= MENU =============");
         Console.WriteLine(" [1] Generate new JWT token");
         Console.WriteLine(" [2] Validate existing token");
+        Console.WriteLine(" [3] Generate token from template");
+        Console.WriteLine(" [4] Manage claims templates");
         Console.WriteLine(" [0] Exit");
         Console.WriteLine("================================");
     }
@@ -817,21 +811,115 @@ class Program
         Console.Write("\nEnter the subject (ex: email or ID): ");
         var subject = Console.ReadLine() ?? "default";
 
-        var claims = new Dictionary<string, string> { { "role", "user" } };
+        var claims = new Dictionary<string, string>();
+
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("\n📝 Add custom claims (optional):");
+        Console.ResetColor();
+        Console.WriteLine("Enter claims in key=value format, one per line.");
+        Console.WriteLine("Press Enter on empty line to finish.");
+        Console.WriteLine("Examples: role=admin, department=IT, permissions=read,write\n");
+
+        while (true)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Write("> ");
+            Console.ResetColor();
+            var claimInput = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(claimInput))
+                break;
+
+            var parts = claimInput.Split('=', 2);
+            if (parts.Length == 2)
+            {
+                var key = parts[0].Trim();
+                var value = parts[1].Trim();
+
+                if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value))
+                {
+                    claims[key] = value;
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"  ✅ Added: {key} = {value}");
+                    Console.ResetColor();
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("  ❌ Key and value cannot be empty");
+                    Console.ResetColor();
+                }
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("  ❌ Invalid format. Use: key=value");
+                Console.ResetColor();
+            }
+        }
+
+        if (claims.Count > 0)
+        {
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"\n📋 Claims to be included ({claims.Count}):");
+            Console.ResetColor();
+            foreach (var claim in claims)
+            {
+                Console.WriteLine($"  • {claim.Key}: {claim.Value}");
+            }
+        }
+        else
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine(
+                "\n⚠️  No custom claims added. Token will contain only standard claims."
+            );
+            Console.ResetColor();
+        }
 
         Loading("Generating token");
 
-        var token = service.GenerateToken(subject, claims);
+        var token = service.GenerateToken(subject, claims.Count > 0 ? claims : null);
+
+        _exportImportService?.AddGeneratedToken(subject, claims, token);
 
         Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("\nToken generated successfully:\n");
+        Console.WriteLine("\n🎉 Token generated successfully:\n");
         Console.ResetColor();
 
         Console.WriteLine(token);
 
         Console.ForegroundColor = ConsoleColor.DarkYellow;
-        Console.WriteLine("\nYou can paste this token in https://jwt.io to inspect.");
+        Console.WriteLine("\n💡 You can paste this token in https://jwt.io to inspect.");
         Console.ResetColor();
+
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.Write("\n💾 Save token to file? (y/N): ");
+        Console.ResetColor();
+        var saveOption = Console.ReadLine()?.ToLower();
+
+        if (saveOption == "y" || saveOption == "yes")
+        {
+            Console.Write("Enter filename (without extension): ");
+            var filename = Console.ReadLine();
+            if (!string.IsNullOrWhiteSpace(filename))
+            {
+                var filepath = $"{filename}.txt";
+                try
+                {
+                    File.WriteAllText(filepath, token);
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"✅ Token saved to: {filepath}");
+                    Console.ResetColor();
+                }
+                catch (Exception ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"❌ Error saving file: {ex.Message}");
+                    Console.ResetColor();
+                }
+            }
+        }
     }
 
     static void ValidarToken(JwtService service)
@@ -861,6 +949,318 @@ class Program
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"\n❌ Token invalid: {result.Error}");
             Console.ResetColor();
+        }
+    }
+
+    static void GerarTokenComTemplate(JwtService service)
+    {
+        MostrarTitulo("Generate Token from Template");
+
+        if (_exportImportService == null)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Export/Import service not available.");
+            Console.ResetColor();
+            return;
+        }
+
+        var templates = _exportImportService.GetClaimsTemplates();
+        if (templates.Count == 0)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("\n⚠️  No templates available. Create one first using option 4.");
+            Console.ResetColor();
+            return;
+        }
+
+        Console.WriteLine("\n📝 Available templates:");
+        for (int i = 0; i < templates.Count; i++)
+        {
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"  [{i + 1}] {templates[i].Name}");
+            Console.ResetColor();
+            Console.WriteLine($"      {templates[i].Description}");
+            Console.WriteLine($"      Claims: {string.Join(", ", templates[i].Claims.Keys)}");
+        }
+
+        Console.Write("\nSelect template number: ");
+        var input = Console.ReadLine();
+
+        if (
+            !int.TryParse(input, out int templateIndex)
+            || templateIndex < 1
+            || templateIndex > templates.Count
+        )
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Invalid template selection.");
+            Console.ResetColor();
+            return;
+        }
+
+        var selectedTemplate = templates[templateIndex - 1];
+
+        Console.Write("\nEnter the subject (ex: email or ID): ");
+        var subject = Console.ReadLine() ?? "default";
+
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine($"\n📋 Using template '{selectedTemplate.Name}' with claims:");
+        Console.ResetColor();
+        foreach (var claim in selectedTemplate.Claims)
+        {
+            Console.WriteLine($"  • {claim.Key}: {claim.Value}");
+        }
+
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.Write("\n➕ Add additional claims? (y/N): ");
+        Console.ResetColor();
+        var addMore = Console.ReadLine()?.ToLower();
+
+        var finalClaims = new Dictionary<string, string>(selectedTemplate.Claims);
+
+        if (addMore == "y" || addMore == "yes")
+        {
+            Console.WriteLine(
+                "\nEnter additional claims (key=value format, empty line to finish):"
+            );
+            while (true)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.Write("> ");
+                Console.ResetColor();
+                var claimInput = Console.ReadLine();
+
+                if (string.IsNullOrWhiteSpace(claimInput))
+                    break;
+
+                var parts = claimInput.Split('=', 2);
+                if (parts.Length == 2)
+                {
+                    var key = parts[0].Trim();
+                    var value = parts[1].Trim();
+
+                    if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value))
+                    {
+                        finalClaims[key] = value;
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine($"  ✅ Added: {key} = {value}");
+                        Console.ResetColor();
+                    }
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("  ❌ Invalid format. Use: key=value");
+                    Console.ResetColor();
+                }
+            }
+        }
+
+        Loading("Generating token");
+
+        var token = service.GenerateToken(subject, finalClaims);
+        _exportImportService?.AddGeneratedToken(subject, finalClaims, token);
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("\n🎉 Token generated successfully:\n");
+        Console.ResetColor();
+        Console.WriteLine(token);
+    }
+
+    static void GerenciarTemplates()
+    {
+        MostrarTitulo("Manage Claims Templates");
+
+        if (_exportImportService == null)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Export/Import service not available.");
+            Console.ResetColor();
+            return;
+        }
+
+        while (true)
+        {
+            Console.WriteLine("\n========== TEMPLATE MENU ==========");
+            Console.WriteLine(" [1] Create new template");
+            Console.WriteLine(" [2] List existing templates");
+            Console.WriteLine(" [3] View template details");
+            Console.WriteLine(" [0] Back to main menu");
+            Console.WriteLine("===================================");
+
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.Write("\n > Choose an option: ");
+            Console.ResetColor();
+            var op = Console.ReadLine();
+
+            switch (op)
+            {
+                case "1":
+                    CriarTemplate();
+                    break;
+                case "2":
+                    ListarTemplates();
+                    break;
+                case "3":
+                    VisualizarTemplate();
+                    break;
+                case "0":
+                    return;
+                default:
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Invalid option.");
+                    Console.ResetColor();
+                    break;
+            }
+        }
+    }
+
+    static void CriarTemplate()
+    {
+        Console.WriteLine("\n📝 Create New Claims Template");
+        Console.WriteLine(new string('-', 35));
+
+        Console.Write("Template name: ");
+        var name = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Template name is required.");
+            Console.ResetColor();
+            return;
+        }
+
+        Console.Write("Template description: ");
+        var description = Console.ReadLine() ?? "";
+
+        var claims = new Dictionary<string, string>();
+        Console.WriteLine("\nEnter claims (key=value format, empty line to finish):");
+
+        while (true)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Write("> ");
+            Console.ResetColor();
+            var claimInput = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(claimInput))
+                break;
+
+            var parts = claimInput.Split('=', 2);
+            if (parts.Length == 2)
+            {
+                var key = parts[0].Trim();
+                var value = parts[1].Trim();
+
+                if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value))
+                {
+                    claims[key] = value;
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"  ✅ Added: {key} = {value}");
+                    Console.ResetColor();
+                }
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("  ❌ Invalid format. Use: key=value");
+                Console.ResetColor();
+            }
+        }
+
+        if (claims.Count == 0)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("No claims added. Template not created.");
+            Console.ResetColor();
+            return;
+        }
+
+        _exportImportService?.AddClaimsTemplate(name, description, claims);
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine(
+            $"\n✅ Template '{name}' created successfully with {claims.Count} claims!"
+        );
+        Console.ResetColor();
+    }
+
+    static void ListarTemplates()
+    {
+        var templates = _exportImportService?.GetClaimsTemplates() ?? new List<ClaimsTemplate>();
+
+        Console.WriteLine($"\n📝 Available Templates ({templates.Count}):");
+        Console.WriteLine(new string('-', 40));
+
+        if (templates.Count == 0)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("No templates found.");
+            Console.ResetColor();
+            return;
+        }
+
+        for (int i = 0; i < templates.Count; i++)
+        {
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[{i + 1}] {templates[i].Name}");
+            Console.ResetColor();
+            Console.WriteLine($"    {templates[i].Description}");
+            Console.WriteLine($"    Claims: {templates[i].Claims.Count}");
+            Console.WriteLine($"    Created: {templates[i].CreatedAt:yyyy-MM-dd HH:mm}");
+            Console.WriteLine();
+        }
+    }
+
+    static void VisualizarTemplate()
+    {
+        var templates = _exportImportService?.GetClaimsTemplates() ?? new List<ClaimsTemplate>();
+
+        if (templates.Count == 0)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("\nNo templates available.");
+            Console.ResetColor();
+            return;
+        }
+
+        Console.WriteLine("\n📋 Select template to view:");
+        for (int i = 0; i < templates.Count; i++)
+        {
+            Console.WriteLine($"  [{i + 1}] {templates[i].Name}");
+        }
+
+        Console.Write("\nTemplate number: ");
+        var input = Console.ReadLine();
+
+        if (
+            !int.TryParse(input, out int templateIndex)
+            || templateIndex < 1
+            || templateIndex > templates.Count
+        )
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Invalid template selection.");
+            Console.ResetColor();
+            return;
+        }
+
+        var template = templates[templateIndex - 1];
+
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine($"\n📝 Template: {template.Name}");
+        Console.ResetColor();
+        Console.WriteLine(new string('-', template.Name.Length + 12));
+        Console.WriteLine($"Description: {template.Description}");
+        Console.WriteLine($"Created: {template.CreatedAt:yyyy-MM-dd HH:mm:ss}");
+        Console.WriteLine($"\nClaims ({template.Claims.Count}):");
+
+        foreach (var claim in template.Claims)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Write($"  • {claim.Key}: ");
+            Console.ResetColor();
+            Console.WriteLine(claim.Value);
         }
     }
 
